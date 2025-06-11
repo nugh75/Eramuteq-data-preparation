@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import io
 from functools import reduce
 
 st.title("Preparazione Corpus per IRaMuTeQ da Multipli Excel")

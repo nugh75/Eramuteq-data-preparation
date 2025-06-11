@@ -40,42 +40,92 @@ if uploaded_files:
         merged_df = pd.concat(dfs, ignore_index=True, sort=False)
         st.info(f"Dataset concatenato: {merged_df.shape[0]} righe, {merged_df.shape[1]} colonne")
 
+    # Mostra anteprima del dataset
+    st.subheader("Anteprima Dataset")
+    st.dataframe(merged_df.head(), use_container_width=True)
+    
+    st.subheader("📊 Informazioni Colonne")
+    col_info = []
+    for col in merged_df.columns:
+        non_null = merged_df[col].notna().sum()
+        total = len(merged_df)
+        col_info.append({
+            "Colonna": col,
+            "Valori non nulli": f"{non_null}/{total} ({non_null/total*100:.1f}%)",
+            "Esempio": str(merged_df[col].dropna().iloc[0])[:50] + "..." if non_null > 0 else "N/A"
+        })
+    st.dataframe(pd.DataFrame(col_info), use_container_width=True)
+
     # Selezione delle colonne per IRaMuTeQ
     st.subheader("Seleziona colonne descrittive")
-    descriptive_cols = st.multiselect("Colonne descrittive", options=merged_df.columns.tolist())
+    st.write("Spunta le colonne che identificano univocamente ogni documento:")
+    descriptive_cols = []
+    
+    # Crea checkbox per colonne descrittive
+    desc_cols = st.columns(min(3, len(merged_df.columns)))
+    for i, col in enumerate(merged_df.columns.tolist()):
+        col_index = i % 3
+        with desc_cols[col_index]:
+            if st.checkbox(col, key=f"desc_{col}"):
+                descriptive_cols.append(col)
 
     st.subheader("Seleziona colonne metadata (opzionale)")
-    metadata_cols = st.multiselect(
-        "Colonne metadata", 
-        options=[c for c in merged_df.columns.tolist() if c not in descriptive_cols]
-    )
+    available_metadata_cols = [c for c in merged_df.columns.tolist() if c not in descriptive_cols]
+    if available_metadata_cols:
+        st.write("Spunta le colonne con caratteristiche dei partecipanti (età, genere, categoria, ecc.):")
+        metadata_cols = []
+        
+        # Crea checkbox per colonne metadata
+        meta_cols = st.columns(min(3, len(available_metadata_cols)))
+        for i, col in enumerate(available_metadata_cols):
+            col_index = i % 3
+            with meta_cols[col_index]:
+                if st.checkbox(col, key=f"meta_{col}"):
+                    metadata_cols.append(col)
+    else:
+        metadata_cols = []
 
-    st.subheader("Seleziona colonna di testo")
+    st.subheader("Seleziona colonne di testo")
     available_text_cols = [c for c in merged_df.columns.tolist() if c not in descriptive_cols + metadata_cols]
     if available_text_cols:
-        text_col = st.selectbox(
-            "Colonna testo", 
-            options=available_text_cols
-        )
+        st.write("Spunta le colonne contenenti il testo da analizzare (verranno unite con spazio):")
+        text_cols = []
+        
+        # Crea checkbox per ogni colonna di testo disponibile
+        cols = st.columns(min(3, len(available_text_cols)))  # Massimo 3 colonne
+        for i, text_col in enumerate(available_text_cols):
+            col_index = i % 3
+            with cols[col_index]:
+                if st.checkbox(text_col, key=f"text_{text_col}"):
+                    text_cols.append(text_col)
     else:
         st.error("Nessuna colonna disponibile per il testo dopo aver selezionato le colonne descrittive e metadata.")
-        text_col = None
+        text_cols = []
 
     if st.button("Genera corpus IRaMuTeQ"):
         if not descriptive_cols:
             st.error("Devi selezionare almeno una colonna descrittiva.")
-        elif not text_col:
-            st.error("Devi selezionare una colonna di testo.")
+        elif not text_cols:
+            st.error("Devi selezionare almeno una colonna di testo.")
         else:
             lines = []
             for _, row in merged_df.iterrows():
                 # Gestisci valori None/NaN
                 meta_desc = " ".join(f"*{col}_{str(row[col]) if pd.notna(row[col]) else 'NA'}" for col in descriptive_cols)
                 meta_data = " ".join(f"*{col}_{str(row[col]) if pd.notna(row[col]) else 'NA'}" for col in metadata_cols) if metadata_cols else ""
-                text = str(row[text_col]).replace("\n", " ").strip() if pd.notna(row[text_col]) else ""
+                
+                # Unisci tutte le colonne di testo selezionate
+                text_parts = []
+                for text_col in text_cols:
+                    if pd.notna(row[text_col]):
+                        part = str(row[text_col]).replace("\n", " ").strip()
+                        if part and part.lower() not in ['nan', 'none', '']:
+                            text_parts.append(part)
+                
+                text = " ".join(text_parts)
                 
                 # Salta righe senza testo significativo
-                if not text or text.lower() in ['nan', 'none', '']:
+                if not text:
                     continue
                 
                 # Costruisci la riga del corpus

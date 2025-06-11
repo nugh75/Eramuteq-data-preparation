@@ -19,8 +19,14 @@ L'applicazione sarà disponibile su: **http://localhost:8507**
 - ✅ Caricamento multipli file Excel
 - ✅ Merge automatico su colonne comuni
 - ✅ Selezione colonne descrittive e metadata
+- ✅ **Selezione multiple colonne di testo**
 - ✅ Generazione formato corpus IRaMuTeQ
+- ✅ Anteprima dataset e statistiche colonne
 - ✅ Download file corpus.txt
+
+## 📖 Guida Completa
+
+Leggi `GUIDA_DATI.md` per esempi dettagliati su come strutturare i tuoi dati Excel.
 
 ## 📋 Requisiti
 

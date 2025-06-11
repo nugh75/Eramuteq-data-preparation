@@ -1,0 +1,7 @@
+[server]
+fileWatcherType = "none"
+port = 8507
+address = "0.0.0.0"
+
+[browser]
+gatherUsageStats = false
